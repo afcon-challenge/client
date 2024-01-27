@@ -1,128 +1,128 @@
-$.getJSON('./players.json', function(data) {
+const API_BASE_URL = "https://api.afcon.fr.to";
+
+$.getJSON("./players.json", (data) => {
   const players = data.players;
-  for (var player of players) {
-    $('.players').append(
-      '<div class="one column wide">' +
-        '<div class="player" data-position="bottom left" data-variation="basic">' +
-        '<div class="image">' +
-        '<img src="' +
-        player.image +
-        '"/>' +
-        '</div>' +
-        '</div>' +
-        '<div class="ui popup">' +
-        '<div class="ui yellow image label">' +
-        player.name +
-        '<div class="detail">' +
-        player.number +
-        '</div>' +
-        '</div>' +
-        '</div>' +
-        '</div>'
+  for (const player of players) {
+    $(".players").append(
+      `<div class="one column wide">
+        <div class="player" data-position="bottom left" data-variation="basic">
+          <div class="image">
+            <img src="${player.image}"/>
+          </div>
+        </div>
+        <div class="ui popup">
+          <div class="ui yellow image label">
+            ${player.name}
+            <div class="detail">${player.number}</div>
+          </div>
+        </div>
+      </div>`
     );
-    $('img.player' + player.number).attr('src', player.image);
+    $(`img.player${player.number}`).attr("src", player.image);
   }
-  $('.player').popup({ inline: true });
+  $(".player").popup({ inline: true });
 });
 
-$('.selection.dropdown').dropdown();
+$.ajax({
+  type: "GET",
+  url: `${API_BASE_URL}/languages`,
+}).done((languages) => {
+  for (const language of languages) {
+    $("#languages").append(
+      `<div class="item" data-value="${language.id}">${language.name}</div>`
+    );
+  }
+  $(".ui.search.selection.dropdown").dropdown();
+});
 
-$('.ui.form').form({
+$(".ui.form").form({
   fields: {
     name: {
-      identifier: 'name',
+      identifier: "name",
       rules: [
         {
-          type: 'minLength[5]',
-          prompt: 'Name must be at least {ruleValue} characters'
-        }
-      ]
+          type: "minLength[5]",
+          prompt: "Name must be at least {ruleValue} characters",
+        },
+      ],
     },
-    email: {
-      identifier: 'email',
+    // email: {
+    //   identifier: "email",
+    //   rules: [
+    //     {
+    //       type: "email",
+    //       prompt: "Please enter a valid email",
+    //     },
+    //   ],
+    // },
+    languageId: {
+      identifier: "languageId",
       rules: [
         {
-          type: 'email',
-          prompt: 'Please enter a valid email'
-        }
-      ]
+          type: "empty",
+          prompt: "Please select your programming language",
+        },
+      ],
     },
-    facebook: {
-      identifier: 'facebook',
+    sourceCode: {
+      identifier: "sourceCode",
       rules: [
         {
-          type: 'regExp',
-          value: /(?:https?:\/\/)?(?:www\.)?(mbasic.facebook|m\.facebook|facebook|fb)\.(com|me)\/(?:(?:\w\.)*#!\/)?(?:pages\/)?(?:[\w\-\.]*\/)*([\w\-\.]*)/,
-          prompt: 'Please enter a valid facebook link'
-        }
-      ]
+          type: "empty",
+          prompt: "Please enter your source code",
+        },
+      ],
     },
-    language: {
-      identifier: 'language',
-      rules: [
-        {
-          type: 'empty',
-          prompt: 'Please select your programming language'
-        }
-      ]
-    },
-    code: {
-      identifier: 'code',
-      rules: [
-        {
-          type: 'empty',
-          prompt: 'Please enter your source code'
-        }
-      ]
-    }
-  }
+  },
 });
 
 function getFieldValue(fieldId) {
-  return $('.ui.form')
-    .form('get field', fieldId)
-    .val();
+  return $(".ui.form").form("get field", fieldId).val();
 }
 
-$('.ui.form .submit.button').api({
-  url: 'https://codecoursez-afcon.herokuapp.com/submissions',
-  method: 'POST',
-  beforeSend: function(settings) {
-    if (!$('.ui.form').form('is valid')) return false;
+$(".ui.form .submit.button").api({
+  url: `${API_BASE_URL}/submissions`,
+  method: "POST",
+  processData: false,
+  contentType: "application/json",
+  beforeSend: (settings) => {
+    if (!$(".ui.form").form("is valid")) return false;
     settings.data = {
-      problemId: '5d162b973bff010023cd5a56',
-      name: getFieldValue('name'),
-      email: getFieldValue('email'),
-      facebookProfileLink: getFieldValue('facebook'),
-      langId: getFieldValue('language'),
-      sourceCode: getFieldValue('code')
+      // problemId: "5d162b973bff010023cd5a56",
+      name: getFieldValue("name"),
+      // email: getFieldValue("email"),
+      // facebookProfileLink: getFieldValue("facebook"),
+      languageId: Number(getFieldValue("languageId")),
+      sourceCode: getFieldValue("sourceCode"),
     };
-    $('.ui.form').addClass('loading');
-    $('.verdict').addClass('hidden');
+    settings.data = JSON.stringify(settings.data);
+
+    $(".ui.form").addClass("loading");
+    $(".verdict").addClass("hidden");
     return settings;
   },
-  onSuccess: function(data) {
-    $('.ui.form').removeClass('loading');
-    $('.ui.form').form('reset');
-    $('.successfully-submitted').removeClass('hidden');
-    insertParam('submission', data._id);
+  onSuccess: (data) => {
+    $(".ui.form").removeClass("loading");
+    $(".ui.form").form("reset");
+    $(".successfully-submitted").removeClass("hidden");
+    insertParam("submission", data.id);
   },
-  onFailure: function(response) {
+  onFailure: (response) => {
     // [TODO] handle rejection
-  }
+  },
 });
 
-function insertParam(key, value) {
-  key = encodeURI(key);
-  value = encodeURI(value);
-  document.location.search = [key, value].join('=');
+function insertParam(k, v) {
+  const key = encodeURI(k);
+  const value = encodeURI(v);
+  document.location.search = [key, value].join("=");
 }
 
 function getParam(key) {
-  const params = document.location.search.substr(1).split('&');
-  for (param of params) {
-    var pair = param.split('=');
-    if (pair[0] == key) {
+  const params = document.location.search.substring(1).split("&");
+  for (const param of params) {
+    const pair = param.split("=");
+    if (pair[0] === key) {
       return pair[1];
     }
   }
@@ -130,42 +130,36 @@ function getParam(key) {
 }
 
 function verdictResponse(id, verdict, user) {
-  let response = '<p>Submission <a href="?submission=' + id + '">#';
-  response += id;
-  response += '</a>';
+  let response = `<p>Submission <a href="?submission=${id}">#`;
+  response += id.split("-").join("");
+  response += "</a>";
 
-  let label = '';
+  let label = "";
   if (verdict) {
-    label = 'red';
+    label = "red";
     if (
-      verdict === 'JUDGING' ||
-      verdict === 'IN_QUEUE' ||
-      verdict === 'PROCESSING'
+      verdict === "PENDING" ||
+      verdict === "IN_QUEUE" ||
+      verdict === "PROCESSING"
     ) {
-      label = 'yellow';
-    } else if (verdict === 'ACCEPTED') {
-      label = 'green';
+      label = "yellow";
+    } else if (verdict === "ACCEPTED") {
+      label = "green";
     }
-    response += ' <span class="ui ' + label + ' label">' + verdict + ' </span>';
+    response += ` <span class="ui ${label} label">${verdict} </span>`;
   }
 
-  if (!verdict || label === 'yellow') {
+  if (!verdict || label === "yellow") {
     response += ' <i class="notched circle loading icon"></i>';
   }
 
-  response += '</p>';
+  response += "</p>";
 
   if (user) {
-    response += '<p>';
-    response +=
-      '<span class="ui grey text" style="margin-right: 10px;"><i class="user icon"></i>' +
-      user.name +
-      '</span> ';
-    response +=
-      '<span class="ui grey text"> <i class="envelope icon"></i>' +
-      user.email +
-      '</span>';
-    response += '</p>';
+    response += "<p>";
+    response += `<span class="ui grey text" style="margin-right: 10px;"><i class="user icon"></i>${user.name}</span> `;
+    response += `<span class="ui grey text"> <i class="envelope icon"></i>${user.email}</span>`;
+    response += "</p>";
   }
 
   return response;
@@ -173,33 +167,33 @@ function verdictResponse(id, verdict, user) {
 
 function checkSubmission(submission) {
   $.ajax({
-    type: 'GET',
-    url: 'https://codecoursez-afcon.herokuapp.com/submissions/' + submission
+    type: "GET",
+    url: `${API_BASE_URL}/submissions/${submission}`,
   })
-    .done(function(res) {
-      $('.verdict').html(verdictResponse(submission, res.verdict, res.user));
+    .done((res) => {
+      $(".verdict").html(verdictResponse(submission, res.verdict, res.user));
       if (
-        res.verdict === 'JUDGING' ||
-        res.verdict === 'IN_QUEUE' ||
-        res.verdict === 'PROCESSING'
+        res.verdict === "PENDING" ||
+        res.verdict === "IN_QUEUE" ||
+        res.verdict === "PROCESSING"
       ) {
-        setTimeout(function() {
+        setTimeout(() => {
           checkSubmission(submission);
         }, 5000);
       }
     })
-    .fail(function(res) {
-      if ((res.status = 404)) {
-        $('.verdict').html(verdictResponse(submission, 'Not Found'));
+    .fail((res) => {
+      if (res.status === 404) {
+        $(".verdict").html(verdictResponse(submission, "Not Found"));
       } else {
-        $('.verdict').addClass('hidden');
+        $(".verdict").addClass("hidden");
       }
     });
 }
 
-const submission = getParam('submission');
+const submission = getParam("submission");
 if (submission) {
-  $('.verdict').removeClass('hidden');
-  $('.verdict').html(verdictResponse(submission));
+  $(".verdict").removeClass("hidden");
+  $(".verdict").html(verdictResponse(submission));
   checkSubmission(submission);
 }
